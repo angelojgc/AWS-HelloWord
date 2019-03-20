@@ -1,0 +1,48 @@
+
+import json
+
+def respond(err, res=None):
+    return {
+        'statusCode': '400' if err else '200',
+        'body': err if err else json.dumps(res),
+        'headers': {
+            'Content-Type': 'application/json',
+        },
+    }
+def crear_persona(persona):
+    direcciones = lambda key,inputData: [subVal["direccion"] for subVal in inputData if  subVal["tipo"] == key ]
+    return {
+              "primerNombre": persona["primerNombre"],
+              "primerApellido": persona["primerApellido"],
+              "fechaNacimiento":  persona["datosNacimiento"]["fecha"],
+              "direcion": direcciones("residencia", persona["direccion"])
+            }
+
+def actualizar_persona(persona):
+    direcciones = lambda key,inputData: [subVal["direccion"] for subVal in inputData if  subVal["tipo"]== key ]
+    return {
+              "estadoActualizacion": "OK",
+              "primerNombre": persona["primerNombre"],
+              "primerApellido": persona["primerApellido"],
+              "fechaNacimiento":  persona["datosNacimiento"]["fecha"],
+              "direcion": direcciones("residencia", persona["direccion"])
+            }
+            
+def lambda_handler(event, context):
+    #print("Received event: " + json.dumps(event, indent=2))
+
+    operations = {
+        #'DELETE': "delete",
+        'GET': "get",
+        'POST': lambda par_persona: crear_persona(par_persona),
+        'PUT':  lambda par_persona: actualizar_persona(par_persona)
+    }
+
+    #seleccionar metodo
+    operation = event['httpMethod']
+    if operation in operations:
+        payload = event['queryStringParameters'] if operation == 'GET' else json.loads(event['body'])
+        #payload = json.loads(json.dumps(event["body"]))
+        return respond(None, operations[operation](payload))
+    else:
+        return respond('Unsupported method "{}"'.format(operation))
